@@ -420,22 +420,30 @@ input[type=submit] {
   Please enter the dates in a given manner as mentioned.
 </div>
 <form action="/future" method = "POST">
-	<div class="row">
-    <div class="col">
-      <input name="start" type="text" class="form-control" placeholder="2019-3-8(start)">
-    </div>
-    <div class="col">
-      <input name="end" type="text" class="form-control" placeholder="2020-3-8(end)">
-    </div>
-  </div>
+<!--	<div class="row">-->
+<!--    <div class="col">-->
+<!--      <input name="start" type="text" class="form-control" placeholder="2019-3-8(start)">-->
+<!--    </div>-->
+<!--    <div class="col">-->
+<!--      <input name="end" type="text" class="form-control" placeholder="2020-3-8(end)">-->
+<!--    </div>-->
+<!--  </div>-->
 	<br/>
 <select name="stock"  class="form-control" required>
 
 	<option selected  value="NIFTY" >Nifty50</option>
-	<option value="SBIN" >SBIN</option>
-
+	<option selected  value="SBIN.NS" >State Bank of India</option>
+	<option value="INDIAMART.NS" >India Mart</option>
+	<option value="DELTACORP.NS" >Delta Corp. LTD</option>
+	<option value="M&M.NS" >Mahindra & Mahindra</option>
+	<option value="AUROPHARMA.NS" >Aurobindo Pharma</option>
+	<option value="BANDHANBNK.NS" >Bandhan Bank</option>
+	<option value="IBULHSGFIN.NS" >Indiabulls Housing Finance Ltd</option>
+	<option value="ADANIENT.NS" >Adani Enterprises Ltd</option>
+	<option value="UPL.NS" >United Phosphorus Limited</option>
+	<option value="GUJGASLTD.NS" >Gujarat Gas Ltd</option>
+	<option value="BRITANNIA.NS" >Britannia Industries Limited </option>
 										</select>
-    <p><input type = "submit" value = "Stock Prediction" name="command" /></p>
 	    <p><input type = "submit" value = "S & R Levels" name="command" /></p>
     <p><input type = "submit" value = "Stock Price Chart" name="command" /></p>
 

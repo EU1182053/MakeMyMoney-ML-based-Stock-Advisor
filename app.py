@@ -11,7 +11,7 @@ import matplotlib.dates as mpl_dates
 import matplotlib.pyplot as plt
 from datetime import date
 from matplotlib.pylab import rcParams
-
+import yfinance as yf
 
 # from mpl_finance import candlestick_ohlc
 
@@ -29,9 +29,11 @@ app = Flask(__name__)
 necessary variables for machine learning"""
 
 
-def obtain_data(ticker, start, end):
+def obtain_data(ticker):
     # Enter the start and end dates using the method date(yyyy,m,dd)
-    stock = get_history(symbol=ticker, start=start, end=end, index=True)
+    # stock = get_history(symbol=ticker, start=start, end=end, index=True)
+
+    stock = yf.download(ticker, '2021-01-01', '2021-09-30')
     print(stock)
     df = stock.copy()
     df = df.reset_index()
@@ -54,7 +56,7 @@ def future():
             current_userinput = request.form.get("stock", None)
             print(current_userinput)
 
-            df = obtain_data(current_userinput, date(2021,6,8), date(2021,10,8))
+            df = obtain_data(current_userinput)
             print(df)
             df['Date'] = pd.to_datetime(df.index)
             df['Date'] = df['Date'].apply(mpl_dates.date2num)
@@ -107,13 +109,7 @@ def future():
 
         else:
             current_userinput = request.form.get("stock", None)
-
-            start_date = request.form.get("start", None)
-            end_date = request.form.get("end", None)
-            start_date1 = start_date.split('-')
-            end_date1 = end_date.split('-')
-            print(start_date,end_date)
-            data = obtain_data(current_userinput, date(2021,6,8), date(2021,10,8))
+            data = obtain_data(current_userinput)
 
             # Calling DataFrame constructor
             df = pd.DataFrame({
