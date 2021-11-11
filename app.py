@@ -33,7 +33,7 @@ def obtain_data(ticker):
     # Enter the start and end dates using the method date(yyyy,m,dd)
     # stock = get_history(symbol=ticker, start=start, end=end, index=True)
 
-    stock = yf.download(ticker, '2021-01-01', '2021-09-30')
+    stock = yf.download(ticker, '2021-06-01', '2021-11-01')
     print(stock)
     df = stock.copy()
     df = df.reset_index()
@@ -79,6 +79,7 @@ def future():
                 figr, ax = plt.subplots()
                 candlestick_ohlc(ax, df.values, width=1, colorup='green', colordown='red', alpha=1)
                 date_format = mpl_dates.DateFormatter('%d %b %Y')
+                ax.grid(True)
                 ax.xaxis.set_major_formatter(date_format)
                 figr.autofmt_xdate()
                 figr.tight_layout()
@@ -143,7 +144,7 @@ def future():
             ax.set_ylabel('Price')
 
             # setting title
-            plt.title('Prices')
+            plt.title(f'{current_userinput} Prices')
 
             # Formatting Date
             date_format = mpdates.DateFormatter('%d-%m-%Y')
