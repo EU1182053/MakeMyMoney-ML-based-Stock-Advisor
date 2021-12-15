@@ -8,4 +8,5 @@ mplfinance==0.12.7a12
 pandas==1.1.1
 numpy==1.17.3
 yfinance
+tensorflow==2.3.2
 
