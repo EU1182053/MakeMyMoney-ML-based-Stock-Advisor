@@ -3,6 +3,8 @@ import base64
 import datetime
 import math
 from io import BytesIO
+
+from dateutil.relativedelta import relativedelta
 from flask import Flask, render_template, request
 from mplfinance.original_flavor import candlestick_ohlc
 import matplotlib.dates as mpdates
@@ -13,11 +15,10 @@ import matplotlib.dates as mpl_dates
 import matplotlib.pyplot as plt
 from matplotlib.pylab import rcParams
 import yfinance as yf
-
 from tensorflow.python.keras import Sequential
 from tensorflow.python.keras.layers import LSTM, Dense
 
-rcParams['figure.figsize'] = 10, 10
+rcParams['figure.figsize'] = 8, 6
 plt.rc('font', size=14)
 
 scaler = MinMaxScaler(feature_range=(0, 1))
@@ -28,12 +29,14 @@ app = Flask(__name__)
 """The default page will route to the form.html page where user can input
 necessary variables for machine learning"""
 
+trend = ""
+
 
 def obtain_data(ticker):
     # Enter the start and end dates using the method date(yyyy,m,dd)
     # stock = get_history(symbol=ticker, start=start, end=end, index=True)
 
-    stock = yf.download(ticker, '2021-04-01', '2021-12-11')
+    stock = yf.download(ticker, '2021-02-13', datetime.date.today() - relativedelta(days=2))
     df = stock.copy()
     df = df.reset_index()
 
@@ -41,437 +44,477 @@ def obtain_data(ticker):
     return df
 
 
+def detect_trend(data):
+    global trend
+    close = data['Close']
+    check = close[0]
+    up, down = 0, 0
+    for i in close:
+        if check > i:
+            down += 1
+        else:
+            up += 1
+    if up > down:
+        trend = "Up"
+        return trend
+    else:
+        trend = "Down"
+        return trend
+
+
+def trade_1(levels, last_closing):
+
+    global trend
+    if trend == "Up":
+        levels_price = []
+        for i in range(len(levels)):
+            levels_price.append(levels[i][1])
+        levels_price = sorted(levels_price)
+
+        if last_closing > max(levels_price):
+            if last_closing > (levels_price[-1] * 0.005):
+                stop_loss = levels_price[-1]
+                target_values = []
+                msg = "Targets are Open." + "Buy"
+            else:
+                stop_loss = 0
+                target_values = []
+                msg = "Avoid Trade."
+        else:
+
+            stop_loss, target_values, msg = 0, 0, ""
+            for i in range(len(levels_price) - 1):
+                if levels_price[i] <= last_closing <= levels_price[i + 1]:
+                    stop_loss = levels_price[i]
+                    target_values = levels_price[i + 1:i+3]
+                    msg = "Buy"
+                    break
+        #
+        return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
+    else:
+        levels_price = []
+        for i in range(len(levels)):
+            levels_price.append(levels[i][1])
+        levels_price = sorted(levels_price)
+        if last_closing > max(levels_price):
+            if last_closing > (levels_price[-1] * 0.005):
+                stop_loss = levels_price[-1]
+                target_values = []
+                msg = "Targets are Open." + "Sell"
+            else:
+                stop_loss = 0
+                target_values = []
+                msg = "Avoid Trade."
+        else:
+
+            stop_loss, target_values, msg = 0, 0, ""
+            for i in range(len(levels_price) - 1):
+                if levels_price[i] <= last_closing <= levels_price[i + 1]:
+                    stop_loss = levels_price[i]
+                    target_values = levels_price[i + 1:i+3]
+                    msg = "Sell"
+                    break
+        #
+        return "stop_loss", stop_loss, "target_values",target_values, "msg", msg
+
+
+def trade_2(levels, last_closing):
+    global trend
+    levels_price = []
+    if trend == "Up":
+        for i in range(len(levels)):
+            levels_price.append(levels[i][1])
+        levels_price = sorted(levels_price)
+        if last_closing > max(levels_price):
+            if last_closing > (levels_price[-1] * 0.005):
+                stop_loss = levels_price[-1]
+                target_values = []
+                msg = "Targets are Open." + "Buy"
+            else:
+                stop_loss = 0
+                target_values = []
+                msg = "Avoid Trade."
+        else:
+
+            stop_loss, target_values, msg = 0, 0, ""
+            for i in range(len(levels_price) - 1):
+                if levels_price[i] <= last_closing <= levels_price[i + 1]:
+                    stop_loss = levels_price[i + 1]
+                    target_values = levels_price[:i - 1]
+                    msg = "Buy"
+                    break
+        #
+        return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
+    else:
+        for i in range(len(levels)):
+            levels_price.append(levels[i][1])
+        levels_price = sorted(levels_price)
+        if last_closing > max(levels_price):
+            if last_closing > (levels_price[-1] * 0.005):
+                stop_loss = levels_price[-1]
+                target_values = []
+                msg = "Targets are Open." + "Sell"
+            else:
+                stop_loss = 0
+                target_values = []
+                msg = "Avoid Trade."
+        else:
+
+            stop_loss, target_values, msg = 0, 0, ""
+            for i in range(len(levels_price) - 1):
+                if levels_price[i] <= last_closing <= levels_price[i + 1]:
+                    stop_loss = levels_price[i + 1]
+                    target_values = levels_price[:i - 1]
+                    msg = "Sell"
+                    break
+        #
+        return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
+
+
 @app.route('/')
 def form():
     return render_template('form.html')
 
 
+@app.route('/chart')
+def chart():
+    return render_template('chart.html')
+
+
+@app.route('/news')
+def show_news():
+    return render_template('news.html')
+
+
 @app.route('/future', methods=['POST'])
 def future():
     if request.method == "POST":
-        command = request.form.get('command')
 
-        if command == 'Stock Prediction':
-            current_userinput = request.form.get("stock", None)
-            df = obtain_data(current_userinput)
+        current_userinput = request.form.get("stock", None)
+        df = obtain_data(current_userinput)
+        print(detect_trend(df))
 
-            df['Date'] = df['Date'].apply(mpl_dates.date2num)
+        df['Date'] = df['Date'].apply(mpl_dates.date2num)
 
-            df["Date"] = pd.to_datetime(df.Date)
-            df.index = df['Date']
+        df["Date"] = pd.to_datetime(df.Date)
+        df.index = df['Date']
 
-            train_value = math.floor(len(df) * 0.9)
-            remain_value = math.floor(len(df) - train_value)
+        train_value = math.floor(len(df) * 0.9)
+        remain_value = math.floor(len(df) - train_value)
 
-            # open data
-            open_data = df.sort_index(ascending=True, axis=0)
-            new_open_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Open"])
-            valid_open_data = pd.DataFrame(index=range(0, remain_value), columns=["Date", "Predictions"])
 
-            for i in range(0, len(open_data)):
-                new_open_dataset["Date"][i] = open_data['Date'][i]
-                new_open_dataset["Open"][i] = open_data["Open"][i]
+        # close data
 
-            new_open_dataset.index = new_open_dataset.Date
-            new_open_dataset.drop("Date", axis=1, inplace=True)
+        close_data = df.sort_index(ascending=True, axis=0)
+        new_close_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Close"])
 
-            final_open_dataset = new_open_dataset.values
+        for i in range(0, len(close_data)):
+            new_close_dataset["Date"][i] = close_data['Date'][i]
+            new_close_dataset["Close"][i] = close_data["Close"][i]
 
-            train_open_data = final_open_dataset[0:, :0]
+        new_close_dataset.index = new_close_dataset.Date
+        new_close_dataset.drop("Date", axis=1, inplace=True)
 
-            scaler = MinMaxScaler(feature_range=(0, 1))
-            scaled_open_data = scaler.fit_transform(final_open_dataset)
+        final_close_dataset = new_close_dataset.values
 
-            x_train_open_data, y_train_open_data = [], []
+        train_close_data = final_close_dataset[0:]
 
-            for i in range(60, len(train_open_data)):
-                x_train_open_data.append(scaled_open_data[i - 60:i, 0])
-                y_train_open_data.append(scaled_open_data[i, 0])
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled_close_data = scaler.fit_transform(final_close_dataset)
 
-            x_train_open_data, y_train_open_data = np.array(x_train_open_data), np.array(y_train_open_data)
+        x_train_close_data, y_train_close_data = [], []
 
-            x_train_open_data = np.reshape(x_train_open_data, (x_train_open_data.shape[0], x_train_open_data.shape[1], 1))
+        for i in range(60, len(train_close_data)):
+            x_train_close_data.append(scaled_close_data[i - 60:i, 0])
+            y_train_close_data.append(scaled_close_data[i, 0])
 
-            # high data
-            high_data = df.sort_index(ascending=True, axis=0)
-            new_high_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "High"])
+        x_train_close_data, y_train_close_data = np.array(x_train_close_data), np.array(y_train_close_data)
 
-            for i in range(0, len(high_data)):
-                new_high_dataset["Date"][i] = high_data['Date'][i]
-                new_high_dataset["High"][i] = high_data["High"][i]
+        x_train_close_data = np.reshape(x_train_close_data,
+                                        (x_train_close_data.shape[0], x_train_close_data.shape[1], 1))
 
-            new_original_dataset = new_high_dataset.copy()
-            new_high_dataset.index = new_high_dataset.Date
-            new_high_dataset.drop("Date", axis=1, inplace=True)
 
-            final_high_dataset = new_high_dataset.values
+        # close
+        lstm_model = Sequential()
+        lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train_close_data.shape[1], 1)))
+        lstm_model.add(LSTM(units=50))
+        lstm_model.add(Dense(1))
 
-            train_high_data = final_high_dataset[0:]
+        lstm_model.compile(loss='mean_squared_error', optimizer='adam')
+        lstm_model.fit(x_train_close_data, y_train_close_data, epochs=1, batch_size=1, verbose=2)
 
-            scaler = MinMaxScaler(feature_range=(0, 1))
-            scaled_high_data = scaler.fit_transform(final_high_dataset)
+        inputs_close_data = new_close_dataset[len(new_close_dataset) - remain_value - 60:].values
+        inputs_close_data = inputs_close_data.reshape(-1, 1)
+        inputs_close_data = scaler.transform(inputs_close_data)
 
-            x_train_high_data, y_train_high_data = [], []
 
-            for i in range(60, len(train_high_data)):
-                x_train_high_data.append(scaled_high_data[i - 60:i, 0])
-                y_train_high_data.append(scaled_high_data[i, 0])
+        # close
+        X_close_test = []
+        for i in range(60, inputs_close_data.shape[0]):
+            X_close_test.append(inputs_close_data[i - 60:i, 0])
+        X_close_test = np.array(X_close_test)
 
-            x_train_high_data, y_train_high_data = np.array(x_train_high_data), np.array(y_train_high_data)
+        X_close_test = np.reshape(X_close_test, (X_close_test.shape[0], X_close_test.shape[1], 1))
+        prediction_closing = lstm_model.predict(X_close_test)
+        prediction_closing = scaler.inverse_transform(prediction_closing)
 
-            x_train_high_data = np.reshape(x_train_high_data, (x_train_high_data.shape[0], x_train_high_data.shape[1], 1))
+        valid_close_data = pd.DataFrame(index=range(0, len(prediction_closing)), columns=["Date", "Predictions"])
 
-            # low data
-            low_data = df.sort_index(ascending=True, axis=0)
-            new_low_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Low"])
+        # for i in range(0,len(prediction_opening)):
+        valid_close_data["Predictions"] = prediction_closing
 
-            for i in range(0, len(high_data)):
-                new_low_dataset["Date"][i] = low_data['Date'][i]
-                new_low_dataset["Low"][i] = low_data["Low"][i]
+        # valid_open_data["Predictions"].dtypes
 
-            new_prediction_dataset = new_low_dataset.copy()
+        plt.plot(valid_close_data[["Predictions"]])
 
-            new_low_dataset.index = new_low_dataset.Date
-            new_low_dataset.drop("Date", axis=1, inplace=True)
+        df = obtain_data(current_userinput)
+        df['Date'] = pd.to_datetime(df.index)
+        df['Date'] = df['Date'].apply(mpl_dates.date2num)
+        last_closing = df['Close'].iloc[-1]
 
-            final_low_dataset = new_low_dataset.values
+        def isSupport(df, i):
+            support = df['Low'][i] < df['Low'][i - 1] < df['Low'][i - 2] and df['Low'][i] < df['Low'][i + 1] < \
+                      df['Low'][i + 2]
+            return support
 
-            train_low_data = final_low_dataset[0:]
+        def isResistance(df, i):
+            resistance = df['High'][i] > df['High'][i - 1] > df['High'][i - 2] and df['High'][i] > \
+                         df['High'][i + 1] > df['High'][i + 2]
+            return resistance
 
-            scaler = MinMaxScaler(feature_range=(0, 1))
-            scaled_low_data = scaler.fit_transform(final_low_dataset)
-            x_train_low_data, y_train_low_data = [], []
-
-            for i in range(60, len(train_low_data)):
-                x_train_low_data.append(scaled_low_data[i - 60:i, 0])
-                y_train_low_data.append(scaled_low_data[i, 0])
-
-            x_train_low_data, y_train_low_data = np.array(x_train_low_data), np.array(y_train_low_data)
-
-            x_train_low_data = np.reshape(x_train_low_data, (x_train_low_data.shape[0], x_train_low_data.shape[1], 1))
-
-            # close data
-
-            close_data = df.sort_index(ascending=True, axis=0)
-            new_close_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Close"])
-
-            for i in range(0, len(close_data)):
-                new_close_dataset["Date"][i] = close_data['Date'][i]
-                new_close_dataset["Close"][i] = close_data["Close"][i]
-
-            new_close_dataset.index = new_close_dataset.Date
-            new_close_dataset.drop("Date", axis=1, inplace=True)
-
-            final_close_dataset = new_close_dataset.values
-
-            train_close_data = final_close_dataset[0:]
-
-            scaler = MinMaxScaler(feature_range=(0, 1))
-            scaled_close_data = scaler.fit_transform(final_close_dataset)
-
-            x_train_close_data, y_train_close_data = [], []
-
-            for i in range(60, len(train_close_data)):
-                x_train_close_data.append(scaled_close_data[i - 60:i, 0])
-                y_train_close_data.append(scaled_close_data[i, 0])
-
-            x_train_close_data, y_train_close_data = np.array(x_train_close_data), np.array(y_train_close_data)
-
-            x_train_close_data = np.reshape(x_train_close_data, (x_train_close_data.shape[0], x_train_close_data.shape[1], 1))
-
-            # open
-            lstm_model = Sequential()
-            lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train_open_data.shape[1], 1)))
-            lstm_model.add(LSTM(units=50))
-            lstm_model.add(Dense(1))
-            lstm_model.compile(loss='mean_squared_error', optimizer='adam')
-            lstm_model.fit(x_train_open_data, y_train_open_data, epochs=1, batch_size=1, verbose=2)
-
-            inputs_open_data = new_open_dataset[len(new_open_dataset) - remain_value - 60:].values
-            inputs_open_data = inputs_open_data.reshape(-1, 1)
-            inputs_open_data = scaler.transform(inputs_open_data)
-
-            # high
-            lstm_model = Sequential()
-            lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train_close_data.shape[1], 1)))
-            lstm_model.add(LSTM(units=50))
-            lstm_model.add(Dense(1))
-
-            lstm_model.compile(loss='mean_squared_error', optimizer='adam')
-            lstm_model.fit(x_train_high_data, y_train_high_data, epochs=1, batch_size=1, verbose=2)
-
-            inputs_high_data = new_high_dataset[len(new_high_dataset) - remain_value - 60:].values
-            inputs_high_data = inputs_high_data.reshape(-1, 1)
-            inputs_high_data = scaler.transform(inputs_high_data)
-
-            # low
-            lstm_model = Sequential()
-            lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train_low_data.shape[1], 1)))
-            lstm_model.add(LSTM(units=50))
-            lstm_model.add(Dense(1))
-
-            lstm_model.compile(loss='mean_squared_error', optimizer='adam')
-            lstm_model.fit(x_train_low_data, y_train_low_data, epochs=1, batch_size=1, verbose=2)
-
-            inputs_low_data = new_low_dataset[len(new_low_dataset) - remain_value - 60:].values
-            inputs_low_data = inputs_low_data.reshape(-1, 1)
-            inputs_low_data = scaler.transform(inputs_low_data)
-
-            # close
-            lstm_model = Sequential()
-            lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train_close_data.shape[1], 1)))
-            lstm_model.add(LSTM(units=50))
-            lstm_model.add(Dense(1))
-
-            lstm_model.compile(loss='mean_squared_error', optimizer='adam')
-            lstm_model.fit(x_train_close_data, y_train_close_data, epochs=1, batch_size=1, verbose=2)
-
-            inputs_close_data = new_close_dataset[len(new_close_dataset) - remain_value - 60:].values
-            inputs_close_data = inputs_close_data.reshape(-1, 1)
-            inputs_close_data = scaler.transform(inputs_close_data)
-
-            # open
-            X_open_test = []
-            for i in range(60, inputs_open_data.shape[0]):
-                X_open_test.append(inputs_open_data[i - 60:i, 0])
-            X_open_test = np.array(X_open_test)
-
-            X_open_test = np.reshape(X_open_test, (X_open_test.shape[0], X_open_test.shape[1], 1))
-            prediction_opening = lstm_model.predict(X_open_test)
-            prediction_opening = scaler.inverse_transform(prediction_opening)
-
-            # high
-            X_high_test = []
-            for i in range(60, inputs_high_data.shape[0]):
-                X_high_test.append(inputs_high_data[i - 60:i, 0])
-            X_high_test = np.array(X_high_test)
-
-            X_high_test = np.reshape(X_high_test, (X_high_test.shape[0], X_high_test.shape[1], 1))
-            prediction_high = lstm_model.predict(X_high_test)
-            prediction_high = scaler.inverse_transform(prediction_high)
-
-            # low
-            X_low_test = []
-            for i in range(60, inputs_low_data.shape[0]):
-                X_low_test.append(inputs_low_data[i - 60:i, 0])
-            X_low_test = np.array(X_low_test)
-
-            X_low_test = np.reshape(X_low_test, (X_low_test.shape[0], X_low_test.shape[1], 1))
-            prediction_low = lstm_model.predict(X_low_test)
-            prediction_low = scaler.inverse_transform(prediction_low)
-
-            # close
-            X_close_test = []
-            for i in range(60, inputs_close_data.shape[0]):
-                X_close_test.append(inputs_close_data[i - 60:i, 0])
-            X_close_test = np.array(X_close_test)
-
-            X_close_test = np.reshape(X_close_test, (X_close_test.shape[0], X_close_test.shape[1], 1))
-            prediction_closing = lstm_model.predict(X_close_test)
-            prediction_closing = scaler.inverse_transform(prediction_closing)
-
-            # lstm_model.save("saved_lstm_model.h5")
-
-            valid_open_data["Predictions"] = prediction_opening
-
-            valid_high_data = pd.DataFrame(index=range(0, len(prediction_high)), columns=["Predictions"])
-
-            # for i in range(0,len(prediction_opening)):
-            valid_high_data["Predictions"] = prediction_high
-
-            valid_low_data = pd.DataFrame(index=range(0, len(prediction_low)), columns=["Predictions"])
-
-            # for i in range(0,len(prediction_opening)):
-            valid_low_data["Predictions"] = prediction_low
-
-            valid_close_data = pd.DataFrame(index=range(0, len(prediction_closing)), columns=["Predictions"])
-
-            # for i in range(0,len(prediction_opening)):
-            valid_close_data["Predictions"] = prediction_closing
-
-            # valid_open_data["Predictions"].dtypes
-
-            plt.plot(valid_close_data[["Predictions"]])
-
-            base = datetime.date.today()
-            for x in range(0, remain_value):
-                valid_open_data['Date'][x] = (base + datetime.timedelta(days=x))
-            # Calling DataFrame constructor
-            df = pd.DataFrame({
-                'Date': [i for i in valid_open_data['Date']],
-                'Open': [i for i in valid_open_data['Predictions']],
-                'High': [i for i in valid_high_data['Predictions']],
-                'Low': [i for i in valid_low_data['Predictions']],
-                'Close': [i for i in valid_close_data['Predictions']],
-
-            })
-
-            # convert into datetime object
-            df['Date'] = pd.to_datetime(df['Date'])
-
-            # apply map function
-            df['Date'] = df['Date'].map(mpdates.date2num)
-
-            # creating Subplots
-            fig, ax = plt.subplots(figsize=(10, 10))
-
-            # plotting the data
-            candlestick_ohlc(ax, df.values, width=0.6,
-                             colorup='green', colordown='red',
-                             alpha=0.8)
-
-            # allow grid
-            ax.grid(True)
-
-            # Setting labels
-            ax.set_xlabel('Date')
-            ax.set_ylabel('Price')
-
-            # setting title
-            # Formatting Date
-            date_format = mpdates.DateFormatter('%d-%m-%Y')
-            ax.xaxis.set_major_formatter(date_format)
-            fig.autofmt_xdate()
-
-            fig.tight_layout()
-
-            # show the plot
-
-            STOCK = BytesIO()
-            plt.savefig(STOCK, format="png")
-            STOCK.seek(0)
-            original_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
-            return render_template("plot.html", original_url=original_url)
-        elif command == 'S & R Levels':
-            current_userinput = request.form.get("stock", None)
-
-            df = obtain_data(current_userinput)
-            df['Date'] = pd.to_datetime(df.index)
-            df['Date'] = df['Date'].apply(mpl_dates.date2num)
-
-            def isSupport(df, i):
-                support = df['Low'][i] < df['Low'][i - 1] < df['Low'][i - 2] and df['Low'][i] < df['Low'][i + 1] < \
-                          df['Low'][i + 2]
-                return support
-
-            def isResistance(df, i):
-                resistance = df['High'][i] > df['High'][i - 1] > df['High'][i - 2] and df['High'][i] > \
-                             df['High'][i + 1]> df['High'][i + 2]
-                return resistance
-            # df = df.loc[:,['Date','Open', 'High', 'Low', 'Close']]
-            levels = []
-            for i in range(2, df.shape[0] - 2):
-                if isSupport(df, i ):
-                    levels.append((i, df['Low'][i]))
-                elif isResistance(df, i):
-                    levels.append((i, df['High'][i]))
-
-            def plot_all():
-                figr, ax = plt.subplots()
-                candlestick_ohlc(ax, df.values, width=1, colorup='green', colordown='red', alpha=1)
-                date_format = mpl_dates.DateFormatter('%d %b %Y')
-                ax.grid(True)
-                ax.xaxis.set_major_formatter(date_format)
-                figr.autofmt_xdate()
-                figr.tight_layout()
-                for level in levels:
-                    plt.hlines(level[1], xmin=df['Date'][level[0]], xmax=max(df['Date']), colors='blue')
-            s = np.mean(df['High'] - df['Low'])
-
-            def isFarFromLevel(l):
-                return np.sum([abs(l - x) < s for x in levels]) == 0
-            levels = []
-            for i in range(2, df.shape[0] - 2):
-                if isSupport(df, i):
-                    l = df['Low'][i]
-
-                    if isFarFromLevel(l):
-                        levels.append((i, l))
-                elif isResistance(df, i):
-                    l = df['High'][i]
-
-                    if isFarFromLevel(l):
-                        levels.append((i, l))
-            plot_all()
-            # show the plot
-            print("levels", levels)
-            STOCK = BytesIO()
-            plt.savefig(STOCK, format="png")
-            STOCK.seek(0)
-            original_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
-            return render_template("plot.html", original_url=original_url)
-
-        elif command == 'Stock Price Chart':
-            current_userinput = request.form.get("stock", None)
-
-            data = obtain_data(current_userinput)
-            # Calling DataFrame constructor
-            df = pd.DataFrame({
-                'Date': [i for i in data['Date']],
-                'Open': [i for i in data['Open']],
-                'High': [i for i in data['High']],
-                'Low': [i for i in data['Low']],
-                'Close': [i for i in data['Close']],
-
-            })
-
-            # convert into datetime object
-            df['Date'] = pd.to_datetime(df['Date'])
-
-            # apply map function
-            df['Date'] = df['Date'].map(mpdates.date2num)
-
-            # creating Subplots
-            fig, ax = plt.subplots(figsize=(10, 10))
-
-            # plotting the data
-            candlestick_ohlc(ax, df.values, width=1,
-                             colorup='green', colordown='red',
-                             alpha=1)
-
-            # allow grid
-            ax.grid(True)
-
-            # Setting labels
-            ax.set_xlabel('Date')
-            ax.set_ylabel('Price')
-
-            # setting title
+        # df = df.loc[:,['Date','Open', 'High', 'Low', 'Close']]
+        levels = []
+        levels = []
+        for i in range(2, df.shape[0] - 2):
+            if isSupport(df, i):
+                levels.append(df['Low'][i])
+                levels.append((i, df['Low'][i]))
+            elif isResistance(df, i):
+                levels.append(df['High'][i])
+                levels.append((i, df['High'][i]))
+
+        def plot_all():
+            figr, ax = plt.subplots()
             plt.title(f'{current_userinput} Prices')
-
-            # Formatting Date
-            date_format = mpdates.DateFormatter('%d-%m-%Y')
+            candlestick_ohlc(ax, df.values, width=1, colorup='green', colordown='red', alpha=1)
+            date_format = mpl_dates.DateFormatter('%d %b %Y')
+            ax.grid(True)
             ax.xaxis.set_major_formatter(date_format)
-            fig.autofmt_xdate()
+            figr.autofmt_xdate()
+            figr.tight_layout()
 
-            fig.tight_layout()
+            for level in levels:
+                plt.hlines(level[1], xmin=df['Date'][level[0]], xmax=max(df['Date']), colors='blue')
 
-            # show the plot
+        s = np.mean(df['High'] - df['Low'])
 
-            # show the plot
+        def isFarFromLevel(l):
+            return np.sum([abs(l - x) < s for x in levels]) == 0
 
-            STOCK = BytesIO()
-            plt.savefig(STOCK, format="png")
-            STOCK.seek(0)
-            original_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
-            return render_template("plot.html", original_url=original_url)
+        levels = []
+        for i in range(2, df.shape[0] - 2):
+            if isSupport(df, i):
+                l = df['Low'][i]
 
-        else:
-            current_userinput = request.form.get("stock", None)
-            data = obtain_data(current_userinput)
-            close = data['Close']
-            check = close[0]
-            up, down = 0, 0
-            for i in close:
-                if check > i:
-                    down += 1
-                else:
-                    up += 1
-            if up > down:
-                print("Up")
-            else:
-                print("Down")
+                if isFarFromLevel(l):
+                    levels.append((i, l))
+            elif isResistance(df, i):
+                l = df['High'][i]
+
+                if isFarFromLevel(l):
+                    levels.append((i, l))
+        plot_all()
+        # show the plot
+        msg = trade_1(levels, last_closing)
+        # print(trade_2(levels, last_closing))
+        STOCK = BytesIO()
+        plt.savefig(STOCK, format="png")
+        STOCK.seek(0)
+        sr_level_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
+
+        current_userinput = request.form.get("stock", None)
+
+        df = obtain_data(current_userinput)
+
+        df['Date'] = pd.to_datetime(df.index)
+
+        df['Date'] = df['Date'].apply(mpl_dates.date2num)
+
+        df["Date"] = pd.to_datetime(df.Date)
+
+        df.index = df['Date']
+
+        train_value = math.floor(len(df) * 0.9)
+
+        remain_value = math.floor(len(df) - train_value)
+        # close data
+
+        close_data = df.sort_index(ascending=True, axis=0)
+        new_close_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Close"])
+
+        base = datetime.date.today() - relativedelta(days=2)
+        for x in range(0, remain_value):
+            valid_close_data['Date'][x] = (base + datetime.timedelta(days=x))
+        valid_close_data.index = valid_close_data.Date
+
+        # creating Subplots
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        # allow grid
+
+        ax.grid(True)
+
+        # Setting labels
+
+        ax.set_ylabel('Price')
+
+        # setting title
+        plt.title(f'{current_userinput} Prices')
+        # Setting labels
+
+        ax.set_xlabel('Date')
+
+        ax.set_ylabel('Price')
+
+        # setting title
+        plt.title(f'{current_userinput} Prices')
+        # Formatting Date
+
+        date_format = mpdates.DateFormatter('%d-%m-%Y')
+
+        ax.xaxis.set_major_formatter(date_format)
+
+        fig.autofmt_xdate()
+
+        # Formatting Date
+
+        # show the plot
+
+        plt.plot(valid_close_data[["Predictions"]])  # prediction-blue
+
+        STOCK = BytesIO()
+
+        plt.savefig(STOCK, format="png")
+
+        STOCK.seek(0)
+
+        line_graph_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
+
+        return render_template("plot.html", line_graph_url=line_graph_url,sr_level_url=sr_level_url, msg=msg)
 
 
-if __name__ == '__main__':
-   app.run()
+@app.route('/chart', methods=['POST'])
+def show_chart():
+    if request.method == "POST":
+        current_userinput = request.form.get("stock", None)
+        data = obtain_data(current_userinput)
+        print(current_userinput)
+        # Calling DataFrame constructor
+        df = pd.DataFrame({
+            'Date': [i for i in data['Date']],
+            'Open': [i for i in data['Open']],
+            'High': [i for i in data['High']],
+            'Low': [i for i in data['Low']],
+            'Close': [i for i in data['Close']],
+
+        })
+
+        # convert into datetime object
+        df['Date'] = pd.to_datetime(df['Date'])
+
+        # apply map function
+        df['Date'] = df['Date'].map(mpdates.date2num)
+
+        # creating Subplots
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        # plotting the data
+        candlestick_ohlc(ax, df.values, width=1,
+                         colorup='green', colordown='red',
+                         alpha=1)
+
+        # allow grid
+        ax.grid(True)
+
+        # Setting labels
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Price')
+
+        # setting title
+        plt.title(f'{current_userinput} Prices')
+
+        # Formatting Date
+        date_format = mpdates.DateFormatter('%d-%m-%Y')
+        ax.xaxis.set_major_formatter(date_format)
+        fig.autofmt_xdate()
+
+        fig.tight_layout()
+
+        # show the plot
+
+        # show the plot
+
+        STOCK = BytesIO()
+        plt.savefig(STOCK, format="png")
+        STOCK.seek(0)
+        raw_candle_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
+        data = obtain_data(current_userinput)
+
+        df = pd.DataFrame({
+            'Date': [i for i in data['Date']],
+            'Close': [i for i in data['Close']],
+        })
+        print(df)
+        df.index = df.Date
+        # convert into datetime object
+        df['Date'] = pd.to_datetime(df['Date'])
+
+        # apply map function
+        df['Date'] = df['Date'].map(mpdates.date2num)
+        # creating Subplots
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        # allow grid
+
+        ax.grid(True)
+
+        # Setting labels
+
+        ax.set_ylabel('Price')
+
+        # setting title
+        plt.title(f'{current_userinput} Prices')
+        # Setting labels
+
+        ax.set_xlabel('Date')
+
+        ax.set_ylabel('Price')
+
+        # setting title
+        plt.title(f'{current_userinput} Prices')
+        # Formatting Date
+
+        date_format = mpdates.DateFormatter('%d-%m-%Y')
+
+        ax.xaxis.set_major_formatter(date_format)
+
+        fig.autofmt_xdate()
+
+        # Formatting Date
+
+        # show the plot
+
+        plt.plot(data["Close"])  # prediction-blue
+
+        STOCK = BytesIO()
+
+        plt.savefig(STOCK, format="png")
+
+        STOCK.seek(0)
+
+        line_graph_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
+
+        return render_template("chart.html", line_graph_url=line_graph_url,
+                               raw_candle_url=raw_candle_url)

@@ -11,8 +11,10 @@ body{
 	back
 }
 .form-control{
-display: flex;
-  flex-direction: column;
+	display: flex;
+
+  flex-direction : {column} ;
+
 }
 /*Navbar*/
 .bg-color{
@@ -45,7 +47,7 @@ display: flex;
 	display: table;
 	width: 100%;
 	height: 100vh;
-	background: url(static/Images/5.jpg) top center;
+	background: url(static/Images/depositphotos.jpg) top center;
 	opacity: 1;
 	background-size: cover;
 }
@@ -454,6 +456,32 @@ img {
 <link rel="preconnect" href="https://fonts.gstatic.com">
 	<title>Stock</title>
 </head>
+<style>
+	.test {
+  display: flex;
+  flex-direction: row;
+}
+.card {
+  border: 1px solid #dadada;
+  box-shadow: 4px 4px 4px 4px rgba(0, 0, 0, 0.2);
+  transition: 0.2s;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  margin:10px 10px 10px 10px
+}
+img {
+  border-radius: 5px 5px 0 0;
+  width:100%;
+   height:100%;
+}
+.form-control{
+display: flex;
+  flex-direction: column;
+  justify-content:center;
+  
+}
+</style>
 <body>
 	<!--nav section-->
 	<section>
@@ -490,18 +518,17 @@ img {
 
 	</nav>
 </section>
-	<section id="hero">
-		<div class="hero-container">
-			<div class="hero-logo">
-				<h1 class="font-weight-bold">Trading Yard</h1>
-			</div>
-			<h2 class="font-weight-bold">The fastest way to follow markets.</h2>
-		</div>
-	</section>
-<form action="/future" method = "POST">
+<form action="/chart" method = "POST">
 	<br/>
 <div class="test">
+<!--	<select name="stock" class="form-control" required>-->
 
+<!--		<option  >6M</option>-->
+<!--		<option  >1Y</option>-->
+<!--		<option  >3Y</option>-->
+<!--		<option  >5Y</option>-->
+<!--		<option  >10Y</option>-->
+<!--</select>-->
 	<select name="stock"  class="form-control" required>
 		<option value="AUROPHARMA.NS" >Aurobindo Pharma</option>
 		<option value="ADANIENT.NS" >Adani Enterprises Ltd</option>
@@ -585,8 +612,7 @@ img {
 		<option value="M&M.NS" >Mahindra & Mahindra</option>
 		<option value="MPHASIS.NS" >Mphasis Limited</option>
 
-		<option value="^NSEBANK" >NIFTY BANK</option>
-		<option value="^NSEI" >NIFTY 50</option>
+		<option selected  value="NIFTY" >Nifty50</option>
 		<option value="NESTLEIND.NS" >Nestlé India Limited </option>
 		<option value="NTPC.NS" >NTPC Limited</option>
 		<option value="NAM-INDIA.NS" >Nippon Life India Asset Management Limited</option>
@@ -643,17 +669,14 @@ img {
 </select>
 
 </div>
-    <p><input type = "submit" value = "Go" name="command" /></p>
+    <p><input type = "submit" value = "Go"  /></p>
 
 </form>
-	<p style="color:red">*Demo Images</p>
-	<!--start of news section-->
-
 	<div class="test">
     <div class="card">
   <img
 		  src="data:image/png;base64, {{ raw_candle_url }}"
-		  onerror="if (this.src != 'static/Images/s&r.PNG') this.src = 'static/Images/s&r.PNG';" >
+		  onerror="if (this.src != 'static/Images/chart1.PNG') this.src = 'static/Images/chart1.PNG';" >
   <div class="container">
 <!--    <h4><b>John Doe</b></h4>-->
     <p>Stock Price Chart</p>
@@ -662,15 +685,13 @@ img {
 <div class="card">
   <img
 		  src="data:image/png;base64, {{ line_graph_url }}"
-		  onerror="if (this.src != 'static/Images/lineprediction.PNG') this.src = 'static/Images/lineprediction.PNG';" >
+		  onerror="if (this.src != 'static/Images/chart2.PNG') this.src = 'static/Images/chart2.PNG';" >
   <div class="container">
 <!--    <h4><b>John Doe</b></h4>-->
     <p>Line Graph Chart</p>
   </div>
 </div>
 </div>
-	<br/>
-	<br/>
 	<section class="footer" id="contact">
             <p class="footer__title">Trading Yard</p>
             <div class="footer__social">
