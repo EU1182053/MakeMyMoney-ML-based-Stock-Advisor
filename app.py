@@ -29,14 +29,14 @@ app = Flask(__name__)
 """The default page will route to the form.html page where user can input
 necessary variables for machine learning"""
 
-trend = ""
+trend, msg, stop_loss, signal, target_values, current_userinput = "", [], "", "", [], ""
 
 
-def obtain_data(ticker):
+def obtain_data(ticker, start, end):
     # Enter the start and end dates using the method date(yyyy,m,dd)
     # stock = get_history(symbol=ticker, start=start, end=end, index=True)
 
-    stock = yf.download(ticker, '2021-02-13', datetime.date.today() - relativedelta(days=2))
+    stock = yf.download(ticker, start, end)
     df = stock.copy()
     df = df.reset_index()
 
@@ -62,113 +62,129 @@ def detect_trend(data):
         return trend
 
 
-def trade_1(levels, last_closing):
+# def trade_1(levels, last_closing):
+#
+#     global trend
+#     if trend == "Up":
+#         levels_price = []
+#         for i in range(len(levels)):
+#             levels_price.append(levels[i][1])
+#         levels_price = sorted(levels_price)
+#
+#         if last_closing > max(levels_price):
+#             if last_closing > (levels_price[-1] * 0.005):
+#                 stop_loss = levels_price[-1]
+#                 target_values = []
+#                 msg = "Targets are Open." + "Buy"
+#             else:
+#                 stop_loss = 0
+#                 target_values = []
+#                 msg = "Avoid Trade."
+#         else:
+#
+#             stop_loss, target_values, msg = 0, 0, ""
+#             for i in range(len(levels_price) - 1):
+#                 if levels_price[i] <= last_closing <= levels_price[i + 1]:
+#                     stop_loss = levels_price[i]
+#                     target_values = levels_price[i + 1:i+3]
+#                     msg = "Buy"
+#                     break
+#         #
+#         return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
+#     else:
+#         levels_price = []
+#         for i in range(len(levels)):
+#             levels_price.append(levels[i][1])
+#         levels_price = sorted(levels_price)
+#         if last_closing > max(levels_price):
+#             if last_closing > (levels_price[-1] * 0.005):
+#                 stop_loss = levels_price[-1]
+#                 target_values = []
+#                 msg = "Targets are Open." + "Sell"
+#             else:
+#                 stop_loss = 0
+#                 target_values = []
+#                 msg = "Avoid Trade."
+#         else:
+#
+#             stop_loss, target_values, msg = 0, 0, ""
+#             for i in range(len(levels_price) - 1):
+#                 if levels_price[i] <= last_closing <= levels_price[i + 1]:
+#                     stop_loss = levels_price[i]
+#                     target_values = levels_price[i + 1:i+3]
+#                     msg = "Sell"
+#                     break
+#         #
+#         return "stop_loss", stop_loss, "target_values",target_values, "msg", msg
+#
+#
+# def trade_2(levels, last_closing):
+#     global trend
+#     levels_price = []
+#     if trend == "Up":
+#         for i in range(len(levels)):
+#             levels_price.append(levels[i][1])
+#         levels_price = sorted(levels_price)
+#         if last_closing > max(levels_price):
+#             if last_closing > (levels_price[-1] * 0.005):
+#                 stop_loss = levels_price[-1]
+#                 target_values = []
+#                 msg = "Targets are Open." + "Buy"
+#             else:
+#                 stop_loss = 0
+#                 target_values = []
+#                 msg = "Avoid Trade."
+#         else:
+#
+#             stop_loss, target_values, msg = 0, 0, ""
+#             for i in range(len(levels_price) - 1):
+#                 if levels_price[i] <= last_closing <= levels_price[i + 1]:
+#                     stop_loss = levels_price[i + 1]
+#                     target_values = levels_price[:i - 1]
+#                     msg = "Buy"
+#                     break
+#         #
+#         return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
+#     else:
+#         for i in range(len(levels)):
+#             levels_price.append(levels[i][1])
+#         levels_price = sorted(levels_price)
+#         if last_closing > max(levels_price):
+#             if last_closing > (levels_price[-1] * 0.005):
+#                 stop_loss = levels_price[-1]
+#                 target_values = []
+#                 msg = "Targets are Open." + "Sell"
+#             else:
+#                 stop_loss = 0
+#                 target_values = []
+#                 msg = "Avoid Trade."
+#         else:
+#
+#             stop_loss, target_values, msg = 0, 0, ""
+#             for i in range(len(levels_price) - 1):
+#                 if levels_price[i] <= last_closing <= levels_price[i + 1]:
+#                     stop_loss = levels_price[i + 1]
+#                     target_values = levels_price[:i - 1]
+#                     msg = "Sell"
+#                     break
+#         #
+#         return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
 
-    global trend
-    if trend == "Up":
-        levels_price = []
-        for i in range(len(levels)):
-            levels_price.append(levels[i][1])
-        levels_price = sorted(levels_price)
 
-        if last_closing > max(levels_price):
-            if last_closing > (levels_price[-1] * 0.005):
-                stop_loss = levels_price[-1]
-                target_values = []
-                msg = "Targets are Open." + "Buy"
-            else:
-                stop_loss = 0
-                target_values = []
-                msg = "Avoid Trade."
-        else:
-
-            stop_loss, target_values, msg = 0, 0, ""
-            for i in range(len(levels_price) - 1):
-                if levels_price[i] <= last_closing <= levels_price[i + 1]:
-                    stop_loss = levels_price[i]
-                    target_values = levels_price[i + 1:i+3]
-                    msg = "Buy"
-                    break
-        #
-        return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
-    else:
-        levels_price = []
-        for i in range(len(levels)):
-            levels_price.append(levels[i][1])
-        levels_price = sorted(levels_price)
-        if last_closing > max(levels_price):
-            if last_closing > (levels_price[-1] * 0.005):
-                stop_loss = levels_price[-1]
-                target_values = []
-                msg = "Targets are Open." + "Sell"
-            else:
-                stop_loss = 0
-                target_values = []
-                msg = "Avoid Trade."
-        else:
-
-            stop_loss, target_values, msg = 0, 0, ""
-            for i in range(len(levels_price) - 1):
-                if levels_price[i] <= last_closing <= levels_price[i + 1]:
-                    stop_loss = levels_price[i]
-                    target_values = levels_price[i + 1:i+3]
-                    msg = "Sell"
-                    break
-        #
-        return "stop_loss", stop_loss, "target_values",target_values, "msg", msg
-
-
-def trade_2(levels, last_closing):
-    global trend
+def trade_3(levels, last_closing):
+    global msg, stop_loss, target_values, signal
     levels_price = []
+    for i in range(len(levels)):
+        levels_price.append(levels[i][1])
+    levels_price = sorted(levels_price)
     if trend == "Up":
-        for i in range(len(levels)):
-            levels_price.append(levels[i][1])
-        levels_price = sorted(levels_price)
-        if last_closing > max(levels_price):
-            if last_closing > (levels_price[-1] * 0.005):
-                stop_loss = levels_price[-1]
-                target_values = []
-                msg = "Targets are Open." + "Buy"
-            else:
-                stop_loss = 0
-                target_values = []
-                msg = "Avoid Trade."
-        else:
-
-            stop_loss, target_values, msg = 0, 0, ""
-            for i in range(len(levels_price) - 1):
-                if levels_price[i] <= last_closing <= levels_price[i + 1]:
-                    stop_loss = levels_price[i + 1]
-                    target_values = levels_price[:i - 1]
-                    msg = "Buy"
-                    break
-        #
-        return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
+        stop_loss = last_closing - (0.05 * last_closing)
+        target_values = [i for i in levels_price if i > last_closing]
+        signal = "buy"
     else:
-        for i in range(len(levels)):
-            levels_price.append(levels[i][1])
-        levels_price = sorted(levels_price)
-        if last_closing > max(levels_price):
-            if last_closing > (levels_price[-1] * 0.005):
-                stop_loss = levels_price[-1]
-                target_values = []
-                msg = "Targets are Open." + "Sell"
-            else:
-                stop_loss = 0
-                target_values = []
-                msg = "Avoid Trade."
-        else:
-
-            stop_loss, target_values, msg = 0, 0, ""
-            for i in range(len(levels_price) - 1):
-                if levels_price[i] <= last_closing <= levels_price[i + 1]:
-                    stop_loss = levels_price[i + 1]
-                    target_values = levels_price[:i - 1]
-                    msg = "Sell"
-                    break
-        #
-        return "stop_loss", stop_loss, "target_values", target_values, "msg", msg
+        stop_loss = last_closing + (0.05 * last_closing)
+        target_values = [i for i in levels_price if i < last_closing]
+        signal = "Sell"
 
 
 @app.route('/')
@@ -188,10 +204,13 @@ def show_news():
 
 @app.route('/future', methods=['POST'])
 def future():
+    global stop_loss, current_userinput, target_values, signal
     if request.method == "POST":
 
         current_userinput = request.form.get("stock", None)
-        df = obtain_data(current_userinput)
+        msg.append("Company")
+        msg.append(current_userinput)
+        df = obtain_data(current_userinput, '2021-02-13', datetime.date.today() - relativedelta(days=2))
         print(detect_trend(df))
 
         df['Date'] = df['Date'].apply(mpl_dates.date2num)
@@ -267,7 +286,7 @@ def future():
 
         plt.plot(valid_close_data[["Predictions"]])
 
-        df = obtain_data(current_userinput)
+        df = obtain_data(current_userinput, '2021-02-13', datetime.date.today() - relativedelta(days=2))
         df['Date'] = pd.to_datetime(df.index)
         df['Date'] = df['Date'].apply(mpl_dates.date2num)
         last_closing = df['Close'].iloc[-1]
@@ -324,9 +343,10 @@ def future():
                 if isFarFromLevel(l):
                     levels.append((i, l))
         plot_all()
-        # show the plot
-        msg = trade_1(levels, last_closing)
-        # print(trade_2(levels, last_closing))
+
+        trade_3(levels, last_closing)
+
+
         STOCK = BytesIO()
         plt.savefig(STOCK, format="png")
         STOCK.seek(0)
@@ -334,7 +354,7 @@ def future():
 
         current_userinput = request.form.get("stock", None)
 
-        df = obtain_data(current_userinput)
+        df = obtain_data(current_userinput, '2021-02-13', datetime.date.today() - relativedelta(days=2))
 
         df['Date'] = pd.to_datetime(df.index)
 
@@ -401,15 +421,29 @@ def future():
 
         line_graph_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
 
-        return render_template("plot.html", line_graph_url=line_graph_url,sr_level_url=sr_level_url, msg=msg)
+        return render_template("form.html",
+                               line_graph_url=line_graph_url,
+                               sr_level_url=sr_level_url,
+                               stop_loss=stop_loss,
+                               signal=signal,
+                               current_userinput=current_userinput,
+                               target_values=target_values)
 
 
 @app.route('/chart', methods=['POST'])
 def show_chart():
     if request.method == "POST":
-        current_userinput = request.form.get("stock", None)
-        data = obtain_data(current_userinput)
-        print(current_userinput)
+        time_period, current_userinput = request.form.get("time_period", None), request.form.get("stock", None)
+        if time_period == "6M":
+            data = obtain_data(current_userinput,'2021-07-13', datetime.date.today() - relativedelta(days=2))
+        elif time_period == "1Y":
+            data = obtain_data(current_userinput,'2021-02-13', datetime.date.today() - relativedelta(days=2))
+        elif time_period == "3Y":
+            data = obtain_data(current_userinput,'2019-02-13', datetime.date.today() - relativedelta(days=2))
+        elif time_period == "5Y":
+            data = obtain_data(current_userinput,'2017-02-13', datetime.date.today() - relativedelta(days=2))
+        else:
+            data = obtain_data(current_userinput, '2012-02-13', datetime.date.today() - relativedelta(days=2))
         # Calling DataFrame constructor
         df = pd.DataFrame({
             'Date': [i for i in data['Date']],
@@ -459,13 +493,11 @@ def show_chart():
         plt.savefig(STOCK, format="png")
         STOCK.seek(0)
         raw_candle_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
-        data = obtain_data(current_userinput)
 
         df = pd.DataFrame({
             'Date': [i for i in data['Date']],
             'Close': [i for i in data['Close']],
         })
-        print(df)
         df.index = df.Date
         # convert into datetime object
         df['Date'] = pd.to_datetime(df['Date'])

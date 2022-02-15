@@ -8,11 +8,35 @@
 
 body{
 	font-family: 'Roboto Condensed', sans-serif;
-	back
+	background-color: #d6dee4;
+}
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px solid #d6dee4;
+}
+
+td, th {
+border-collapse: collapse;
+border: 2px solid #d6dee4;
+  text-align: left;
+  padding: 8px;
+
+}
+
+tr:nth-child(even) {
+  background-color: #d6dee4	;
+}
+option {
+    /* Whatever color  you want */
+    background-color: #d6dee4;
+    font-family: "Roboto", sans-serif;
 }
 .form-control{
 display: flex;
   flex-direction: column;
+  color: #6833d4
 }
 /*Navbar*/
 .bg-color{
@@ -419,15 +443,17 @@ input[type=submit] {
 .test {
   display: flex;
   flex-direction: row;
+
 }
 .card {
-  border: 1px solid #dadada;
-  box-shadow: 4px 4px 4px 4px rgba(0, 0, 0, 0.2);
+  border: 1px  #dadada;
+
   transition: 0.2s;
   width: 50%;
   display: flex;
   flex-direction: column;
-  margin:10px 10px 10px 10px
+  margin:10px 10px 10px 10px;
+  background-color: #d6dee4;
 }
 
 /* On mouse-over, add a deeper shadow */
@@ -503,7 +529,7 @@ img {
 <div class="test">
 
 	<select name="stock"  class="form-control" required>
-		<option value="AUROPHARMA.NS" >Aurobindo Pharma</option>
+		<option value="AUROPHARMA.NS" name="Aurobindo Pharma" >Aurobindo Pharma</option>
 		<option value="ADANIENT.NS" >Adani Enterprises Ltd</option>
 		<option value="ASHOKLEY.NS" >Ashok Leyland Limited</option>
 		<option value="AMBUJACEM.NS" >Ambuja Cements Limited</option>
@@ -652,7 +678,7 @@ img {
 	<div class="test">
     <div class="card">
   <img
-		  src="data:image/png;base64, {{ raw_candle_url }}"
+		  src="data:image/png;base64, {{ sr_level_url }}"
 		  onerror="if (this.src != 'static/Images/s&r.PNG') this.src = 'static/Images/s&r.PNG';" >
   <div class="container">
 <!--    <h4><b>John Doe</b></h4>-->
@@ -669,6 +695,33 @@ img {
   </div>
 </div>
 </div>
+
+
+<div class="test" style="width:100%;margin:5px 5px 5px 5px;padding: 5px 5px 5px 5px;">
+	<table style="width:100%">
+  <tr>
+    <td>Company</td>
+    <td>{{current_userinput}}</td>
+
+  </tr>
+  <tr>
+    <td>STOP LOSS</td>
+    <td>{{stop_loss}}</td>
+
+  </tr>
+  <tr>
+    <td>Targets</td>
+    <td>{{target_values}}</td>
+  </tr>
+  <tr>
+    <td>Message</td>
+    <td>{{signal}}</td>
+  </tr>
+  <tr>
+
+</table>
+</div>
+
 	<br/>
 	<br/>
 	<section class="footer" id="contact">
