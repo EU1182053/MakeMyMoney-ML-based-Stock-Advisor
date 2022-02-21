@@ -1,13 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital@1&display=swap');
+	@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital@1&display=swap');
 
 body{
 	font-family: 'Roboto Condensed', sans-serif;
+	background-color: #d6dee4;
+}
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px solid #d6dee4;
 }
 
+td, th {
+border-collapse: collapse;
+border: 2px solid #d6dee4;
+  text-align: left;
+  padding: 8px;
+
+}
+td:empty::before {
+content: "No Data"
+}
+tr:nth-child(even) {
+  background-color: #d6dee4	;
+}
+option {
+    /* Whatever color  you want */
+    background-color: #d6dee4;
+    font-family: "Roboto", sans-serif;
+}
+.form-control{
+display: flex;
+  flex-direction: column;
+  color: #6833d4
+}
 /*Navbar*/
 .bg-color{
-	background:#0f0f0ffb;
-	
+	background:#ffe6e6;
+
 }
 .navbar-brand{
 	color: #f8aa02;
@@ -35,13 +65,13 @@ body{
 	display: table;
 	width: 100%;
 	height: 100vh;
-	background: url(Images/chart.jfif) top center;
+	background-image: url(5.jpg) top center;
 	opacity: 1;
 	background-size: cover;
 }
 @media(min-width: 1024px){
 	#hero{
-		background-attachment: fixed;
+<!--		background-attachment: fixed;-->
 	}
 }
 
@@ -220,7 +250,7 @@ body{
 #Line-chart img{
 	width: 100%;
 	height: 100vh;
-	background: url(Images/chart.jfif) top center;
+	background-image: url(static/Images/cards/depositphotos.jpg) top center;
 }
 
 @media(min-width: 1024px){
@@ -362,4 +392,96 @@ body{
   font-size: 1.5rem;
   color: orange;
   margin: 0 1rem;
+
+}
+input[type=submit] {
+  width: 100%;
+  background-color: #221e54;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#myInput {
+  background-image: url('/css/searchicon.png'); /* Add a search icon to input */
+  background-position: 10px 12px; /* Position the search icon */
+  background-repeat: no-repeat; /* Do not repeat the icon image */
+  width: 100%; /* Full-width */
+  font-size: 16px; /* Increase font-size */
+  padding: 12px 20px 12px 40px; /* Add some padding */
+  border: 1px solid #ddd; /* Add a grey border */
+  margin-bottom: 12px; /* Add some space below the input */
+}
+
+#myUL {
+  /* Remove default list styling */
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+#myUL li a {
+  border: 1px solid #ddd; /* Add a border to all links */
+  margin-top: -1px; /* Prevent double borders */
+  background-color: #f6f6f6; /* Grey background color */
+  padding: 12px; /* Add some padding */
+  text-decoration: none; /* Remove default text underline */
+  font-size: 18px; /* Increase the font-size */
+  color: black; /* Add a black text color */
+  display: block; /* Make it into a block element to fill the whole list */
+}
+
+#myUL li a:hover:not(.header) {
+  background-color: #eee; /* Add a hover effect to all links, except for headers */
+}
+.test {
+  display: flex;
+  flex-direction: row;
+
+}
+.card {
+  border: 1px  #dadada;
+
+  transition: 0.2s;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  margin:10px 10px 10px 10px;
+  background-color: #d6dee4;
+}
+
+/* On mouse-over, add a deeper shadow */
+.card:hover {
+  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+}
+
+/* Add some padding inside the card container */
+.container {
+  padding: 2px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+}
+img {
+  border-radius: 5px 5px 0 0;
+  width:100%;
+   height:100%;
+}
+
+.newsCard {
+  display: flex;
+  width: 100%;
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
+  padding: 10px;
+  margin-bottom: 25px;
+  border-radius: 5px;
+  background-color: #d6dee4;
+}
+
+.title {
+  font-size: 22px;
+  line-height: 27px;
+  font-family: "Roboto", sans-serif;
 }
