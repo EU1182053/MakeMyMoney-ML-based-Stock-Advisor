@@ -23,13 +23,13 @@ plt.rc('font', size=14)
 
 scaler = MinMaxScaler(feature_range=(0, 1))
 
-plt.rc('font', size=14)
+
 app = Flask(__name__)
 
 """The default page will route to the form.html page where user can input
 necessary variables for machine learning"""
 
-trend, msg, stop_loss, signal, target_values, current_userinput = "", [], "", "", [], ""
+trend, msg, stop_loss, signal, targets, current_userinput = "", [], "", "", "", ""
 logo_url = ""
 longName = ""
 sector = ""
@@ -51,7 +51,7 @@ def company_data(ticker):
     # Enter the start and end dates using the method date(yyyy,m,dd)
     # stock = get_history(symbol=ticker, start=start, end=end, index=True)
     msft = yf.Ticker(ticker)
-    print(msft.info)
+
     # get stock info
 
     longName = msft.info["longName"]
@@ -99,8 +99,9 @@ def detect_trend(data):
 
 
 def trade_3(levels, last_closing):
-    global msg, stop_loss, target_values, signal
-    levels_price = []
+    global msg, stop_loss, signal, longName, targets
+    targets = ""
+    levels_price, target_values = [], []
     for i in range(len(levels)):
         levels_price.append(levels[i][1])
     levels_price = sorted(levels_price)
@@ -112,10 +113,14 @@ def trade_3(levels, last_closing):
         stop_loss = last_closing + (0.05 * last_closing)
         target_values = [i for i in levels_price if i < last_closing]
         signal = "SELL"
+    count = 0
+    for i in target_values:
+        if count == 3:
+            break
+        else:
+            targets += "₹"  + str(round(i, 2)) + " "
+            count += 1
 
-    target_values = "₹" + str(round(target_values[0], 2)) \
-                    + "," + "₹" + str(round(target_values[1], 2)) \
-                    + "," + "₹" + str(round(target_values[0], 2))
     stop_loss = "₹" + str(round(stop_loss, 2))
 
 
@@ -136,21 +141,22 @@ def show_news():
 
 @app.route('/future', methods=['POST'])
 def future():
-    global stop_loss, current_userinput, target_values, signal
+    global stop_loss, current_userinput, targets, signal
+
     if request.method == "POST":
 
         current_userinput = request.form.get("stock", None)
         company_data(current_userinput)
-        df = obtain_data(current_userinput, '2021-02-13', datetime.date.today() - relativedelta(days=2))
+        df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=5), datetime.date.today())
 
-        print(detect_trend(df))
+        detect_trend(df)
 
         df['Date'] = df['Date'].apply(mpl_dates.date2num)
 
         df["Date"] = pd.to_datetime(df.Date)
         df.index = df['Date']
 
-        train_value = math.floor(len(df) * 0.9)
+        train_value = math.floor(len(df) * 0.7)
         remain_value = math.floor(len(df) - train_value)
 
         # close data
@@ -167,7 +173,7 @@ def future():
 
         final_close_dataset = new_close_dataset.values
 
-        train_close_data = final_close_dataset[0:]
+        train_close_data = final_close_dataset[remain_value:]
 
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaled_close_data = scaler.fit_transform(final_close_dataset)
@@ -216,7 +222,7 @@ def future():
 
         plt.plot(valid_close_data[["Predictions"]])
 
-        df = obtain_data(current_userinput, '2021-02-13', datetime.date.today() - relativedelta(days=2))
+        df = obtain_data(current_userinput,  datetime.date.today() - relativedelta(months=6), datetime.date.today())
         df['Date'] = pd.to_datetime(df.index)
         df['Date'] = df['Date'].apply(mpl_dates.date2num)
         last_closing = df['Close'].iloc[-1]
@@ -283,29 +289,28 @@ def future():
 
         current_userinput = request.form.get("stock", None)
 
-        df = obtain_data(current_userinput, '2021-02-13', datetime.date.today() - relativedelta(days=2))
-
-        df['Date'] = pd.to_datetime(df.index)
-
-        df['Date'] = df['Date'].apply(mpl_dates.date2num)
-
-        df["Date"] = pd.to_datetime(df.Date)
-
-        df.index = df['Date']
-
-        train_value = math.floor(len(df) * 0.9)
-
-        remain_value = math.floor(len(df) - train_value)
-        # close data
-
-        close_data = df.sort_index(ascending=True, axis=0)
-        new_close_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Close"])
+        # df = obtain_data(current_userinput, datetime.date.today() - relativedelta(months=6), datetime.date.today() - relativedelta(days=2))
+        #
+        # df['Date'] = pd.to_datetime(df.index)
+        #
+        # df['Date'] = df['Date'].apply(mpl_dates.date2num)
+        #
+        # df["Date"] = pd.to_datetime(df.Date)
+        #
+        # df.index = df['Date']
+        #
+        # train_value = math.floor(len(df) * 0.9)
+        #
+        # remain_value = math.floor(len(df) - train_value)
+        # # close data
+        #
+        # close_data = df.sort_index(ascending=True, axis=0)
+        # new_close_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Close"])
 
         base = datetime.date.today() - relativedelta(days=2)
         for x in range(0, remain_value):
             valid_close_data['Date'][x] = (base + datetime.timedelta(days=x))
         valid_close_data.index = valid_close_data.Date
-        print(valid_close_data)
         # creating Subplots
 
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -356,24 +361,118 @@ def future():
                                stop_loss=stop_loss,
                                signal=signal,
                                current_userinput=current_userinput,
-                               target_values=target_values)
+                               targets=targets,
+                               longName=longName)
 
+
+@app.route('/cal', methods=['POST'])
+def cal():
+    moving_average, return_percent, max_price = 0, 0, 0
+    if request.method == "POST":
+
+        current_userinput = request.form.get("stock", None)
+        price = int(request.form.get("price"))
+        shares = int(request.form.get("shares"))
+        company_data(current_userinput)
+        df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=4), datetime.date.today())
+
+        last_closing = df['Close'].iloc[-1]
+        df['Date'] = df['Date'].apply(mpl_dates.date2num)
+
+        df["Date"] = pd.to_datetime(df.Date)
+        df.index = df['Date']
+
+        train_value = math.floor(len(df) * 0.7)
+        remain_value = math.floor(len(df) - train_value)
+
+        # close data
+
+        close_data = df.sort_index(ascending=True, axis=0)
+        new_close_dataset = pd.DataFrame(index=range(0, len(df)), columns=['Date', "Close"])
+
+        for i in range(0, len(close_data)):
+            new_close_dataset["Date"][i] = close_data['Date'][i]
+            new_close_dataset["Close"][i] = close_data["Close"][i]
+
+        new_close_dataset.index = new_close_dataset.Date
+        new_close_dataset.drop("Date", axis=1, inplace=True)
+
+        final_close_dataset = new_close_dataset.values
+
+        train_close_data = final_close_dataset[remain_value:]
+
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled_close_data = scaler.fit_transform(final_close_dataset)
+
+        x_train_close_data, y_train_close_data = [], []
+
+        for i in range(60, len(train_close_data)):
+            x_train_close_data.append(scaled_close_data[i - 60:i, 0])
+            y_train_close_data.append(scaled_close_data[i, 0])
+
+        x_train_close_data, y_train_close_data = np.array(x_train_close_data), np.array(y_train_close_data)
+
+        x_train_close_data = np.reshape(x_train_close_data,
+                                        (x_train_close_data.shape[0], x_train_close_data.shape[1], 1))
+
+        # close
+        lstm_model = Sequential()
+        lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train_close_data.shape[1], 1)))
+        lstm_model.add(LSTM(units=50))
+        lstm_model.add(Dense(1))
+
+        lstm_model.compile(loss='mean_squared_error', optimizer='adam')
+        lstm_model.fit(x_train_close_data, y_train_close_data, epochs=1, batch_size=1, verbose=2)
+
+        inputs_close_data = new_close_dataset[len(new_close_dataset) - remain_value - 60:].values
+        inputs_close_data = inputs_close_data.reshape(-1, 1)
+        inputs_close_data = scaler.transform(inputs_close_data)
+
+        # close
+
+        X_close_test = []
+        for i in range(60, inputs_close_data.shape[0]):
+            X_close_test.append(inputs_close_data[i - 60:i, 0])
+        X_close_test = np.array(X_close_test)
+
+        X_close_test = np.reshape(X_close_test, (X_close_test.shape[0], X_close_test.shape[1], 1))
+        prediction_closing = lstm_model.predict(X_close_test)
+        prediction_closing = scaler.inverse_transform(prediction_closing)
+
+        valid_close_data = pd.DataFrame(index=range(0, len(prediction_closing)), columns=["Date", "Predictions"])
+
+        # for i in range(0,len(prediction_opening)):
+        valid_close_data["Predictions"] = prediction_closing
+        max_price = (max(prediction_closing))[0]
+        print(sum(prediction_closing) , len(prediction_closing))
+        moving_average = sum(prediction_closing) / len(prediction_closing)
+
+        return_percent = (max_price - price) * shares
+        return_percent = return_percent * 100
+        return_percent = return_percent / (price * shares)
+
+        return_percent = str(round(return_percent, 2)) + "%"
+        moving_average = "₹" + str(round(moving_average[0], 2))
+        max_price = "₹" + str(round((max(prediction_closing))[0], 2))
+
+        return render_template('form.html', return_percent=return_percent, moving_average=moving_average, max_price=max_price )
 
 @app.route('/chart', methods=['POST'])
 def show_chart():
     global logo_url
+    six_months = datetime.date.today() + relativedelta(months=6)
     if request.method == "POST":
         time_period, current_userinput = request.form.get("time_period", None), request.form.get("stock", None)
         if time_period == "6M":
-            data = obtain_data(current_userinput, '2021-07-13', datetime.date.today() - relativedelta(days=2))
+            data = obtain_data(current_userinput, datetime.date.today() - relativedelta(months=6), datetime.date.today() - relativedelta(days=2))
         elif time_period == "1Y":
-            data = obtain_data(current_userinput, '2021-02-13', datetime.date.today() - relativedelta(days=2))
+            data = obtain_data(current_userinput, datetime.date.today() - relativedelta(year=1), datetime.date.today() - relativedelta(days=2))
         elif time_period == "3Y":
-            data = obtain_data(current_userinput, '2019-02-13', datetime.date.today() - relativedelta(days=2))
+            data = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=3), datetime.date.today() - relativedelta(days=2))
         elif time_period == "5Y":
-            data = obtain_data(current_userinput, '2017-02-13', datetime.date.today() - relativedelta(days=2))
+            data = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=5), datetime.date.today() - relativedelta(days=2))
         else:
-            data = obtain_data(current_userinput, '2012-02-13', datetime.date.today() - relativedelta(days=2))
+            data = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=10), datetime.date.today() - relativedelta(days=2))
         company_data(current_userinput)
         # Calling DataFrame constructor
         df = pd.DataFrame({
@@ -479,7 +578,7 @@ def show_chart():
 
         line_graph_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
 
-        return render_template("chart.html",
+        return render_template("form.html",
                                line_graph_url=line_graph_url,
                                raw_candle_url=raw_candle_url,
                                longName=longName,
