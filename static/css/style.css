@@ -467,7 +467,7 @@ p {
   width: 50%;
   display: flex;
   flex-direction: column;
-  margin:5px 5px 5px 5px;
+  margin:1px 1px 1px 1px;
   background-color: #d6dee4;
 }
 
@@ -532,3 +532,19 @@ p {
 	text-align: left;
 }
 /* End Services Section */
+
+/* Return Section */
+
+.returnCard {
+
+  border: 1px  #dadada;
+
+  transition: 0.2s;
+  width: 85%;
+  height: 40%;
+  display: flex;
+  flex-direction: column;
+  margin:1px 1px 1px 1px;
+
+
+}

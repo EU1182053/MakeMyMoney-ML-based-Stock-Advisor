@@ -282,26 +282,22 @@
 
       <div class="service-bottom">
         <div class="service-item">
-          <div class="icon"><img src="static\Images\cards\vix.png" /></div>
-          <h2>VIX</h2>
-          <p>While market indices such as the Nifty measure the direction of the market and
-			 is evaluated based on the price movements of the underlying stocks,
-			 a volatility index such as India VIX indicates the volatility of the market and
-			  is calculated using the order book of the underlying index's options.</p>
-			<a href="https://www.moneycontrol.com/indian-indices/india-vix-36.html" >
+          <div class="icon"><img src="static\Images\cards\nseindices.jpg" /></div>
+          <h2>NIFTY INDICES</h2>
+          <p>It is one of the two main stock indices used in India,
+			  the other being the BSE SENSEX</p>
+			<a href="https://www1.nseindia.com/live_market/dynaContent/live_watch/live_index_watch.htm" >
 			Official Website
             </a>
         </div>
 
 
         <div class="service-item">
-          <div class="icon"><img src="static\Images\cards\vix.png" /></div>
-          <h2>VIX</h2>
-          <p>While market indices such as the Nifty measure the direction of the market and
-			 is evaluated based on the price movements of the underlying stocks,
-			 a volatility index such as India VIX indicates the volatility of the market and
-			  is calculated using the order book of the underlying index's options.</p>
-			<a href="https://www.moneycontrol.com/indian-indices/india-vix-36.html" >
+          <div class="icon"><img src="static\Images\cards\preopen.jfif" /></div>
+          <h2>PRE-OPEN SESSION</h2>
+          <p>Pre-Open market session is utilised to arrive at the ideal opening price of a stock for the current trading session.
+			  </p>
+			<a href="https://www.nseindia.com/market-data/top-gainers-loosers" >
 			Official Website
             </a>
         </div>
@@ -309,9 +305,7 @@
 		  <div class="service-item">
           <div class="icon"><img src="static\Images\cards\vix.png" /></div>
           <h2>VIX</h2>
-          <p>While market indices such as the Nifty measure the direction of the market and
-			 is evaluated based on the price movements of the underlying stocks,
-			 a volatility index such as India VIX indicates the volatility of the market and
+          <p>India VIX indicates the volatility of the market and
 			  is calculated using the order book of the underlying index's options.</p>
 			<a href="https://www.moneycontrol.com/indian-indices/india-vix-36.html" >
 			Official Website
@@ -319,13 +313,11 @@
         </div>
 
 		  <div class="service-item">
-          <div class="icon"><img src="static\Images\cards\vix.png" /></div>
-          <h2>VIX</h2>
-          <p>While market indices such as the Nifty measure the direction of the market and
-			 is evaluated based on the price movements of the underlying stocks,
-			 a volatility index such as India VIX indicates the volatility of the market and
-			  is calculated using the order book of the underlying index's options.</p>
-			<a href="https://www.moneycontrol.com/indian-indices/india-vix-36.html" >
+          <div class="icon"><img src="static\Images\cards\topgainer.jpg" /></div>
+          <h2>TOP GAINERS/LOSERS</h2>
+          <p>Best Stocks to Buy: Here is the list of 10 of Top Gainers and Top Losers in NSE share market today. Learn more about
+			  best stocks to invest in Today stock.</p>
+			<a href="https://www.nseindia.com/market-data/top-gainers-loosers" >
 			Official Website
             </a>
         </div>
@@ -594,11 +586,17 @@
 </section>
 	<!--End of Chart Section -->
 
-	 <h1 class="section-title">Calculate <span>Returns</span></h1>
+	 <h1 class="section-title">Calculate Investment <span>Returns</span></h1>
 	 <section id="returns">
 		 <form action="/cal" method = "POST">
 
+<select name="time_period" class="form-control" required>
 
+		<option selected value="6M"  >6M</option>
+		<option value="1Y"  >1Y</option>
+		<option value="3Y" >2Y</option>
+		<option value="5Y" >4Y</option>
+</select>
 
 	<select name="stock"  class="form-control" required>
 		<option value="AUROPHARMA.NS" >Aurobindo Pharma</option>
@@ -739,34 +737,41 @@
 
 </select>
 
+		 <div class="test">
+			 <input style="backgroung-color:rgb(240, 248, 255); color:crimson;" class="form-control" type="text"   name="invest" placeholder="Investment" />
+		 </div>
+		     <input style="background-color:rgb(240, 248, 255); color:crimson;" class="form-control" type = "submit" value = "Calculate"  name="command" />
 
-	<div class="test" style="width:100%;margin:5px 5px 5px 5px;padding: 5px 5px 5px 5px;">
+	 </form>
+
+
+		 <div class="test" style="width:100%;margin:5px 5px 5px 5px;padding: 5px 5px 5px 5px;">
 		<table style="width:100%">
+			<tr>
+    <td>Company</td>
+    <td>{{longName}}</td>
+
+  </tr>
   <tr>
-    <td>Yearly Return</td>
+    <td>Return on CMP</td>
     <td>{{return_percent}}</td>
 
   </tr>
-<tr>
-    <td>Moving Average</td>
-    <td>{{moving_average}}</td>
+
+			<tr>
+    <td>Current Market Price</td>
+    <td>{{last_closing}}</td>
 
   </tr>
-		<tr>
-    <td>Max Price</td>
-    <td>{{max_price}}</td>
+
+			<tr>
+    <td>Profit</td>
+    <td>{{profit}}</td>
 
   </tr>
 </table>
 
 	</div>
-		 <div class="test">
-			 <input style="backgroung-color:rgb(240, 248, 255); color:crimson;" class="form-control" type="text"   name="shares" placeholder="Quatity" />
-		     <input style="backgroung-color:rgb(240, 248, 255); color:crimson;" class="form-control" type="text"   name="price" placeholder="Price"/>
-		 </div>
-		     <input style="background-color:rgb(240, 248, 255); color:crimson;" class="form-control" type = "submit" value = "Calculate"  name="command" />
-
-	 </form>
 	 </section>
 
 	<!-- Contact Section -->

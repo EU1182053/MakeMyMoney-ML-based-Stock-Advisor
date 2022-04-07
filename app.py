@@ -142,12 +142,11 @@ def show_news():
 @app.route('/future', methods=['POST'])
 def future():
     global stop_loss, current_userinput, targets, signal
-
     if request.method == "POST":
 
         current_userinput = request.form.get("stock", None)
         company_data(current_userinput)
-        df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=5), datetime.date.today())
+        df = obtain_data(current_userinput, datetime.date.today() - relativedelta(months=6), datetime.date.today())
 
         detect_trend(df)
 
@@ -367,14 +366,20 @@ def future():
 
 @app.route('/cal', methods=['POST'])
 def cal():
-    moving_average, return_percent, max_price = 0, 0, 0
+    moving_average, return_percent, max_price, profit = 0, 0, 0, 0
     if request.method == "POST":
+        time_period, current_userinput = request.form.get("time_period", None), request.form.get("stock", None)
+        if time_period == "6M":
+            df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=2), datetime.date.today() )
+        elif time_period == "1Y":
+            df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=4), datetime.date.today() )
+        elif time_period == "2Y":
+            df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=8), datetime.date.today() )
+        else:
+            df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=16), datetime.date.today() )
 
-        current_userinput = request.form.get("stock", None)
-        price = int(request.form.get("price"))
-        shares = int(request.form.get("shares"))
+        shares = int(request.form.get("invest"))
         company_data(current_userinput)
-        df = obtain_data(current_userinput, datetime.date.today() - relativedelta(years=4), datetime.date.today())
 
         last_closing = df['Close'].iloc[-1]
         df['Date'] = df['Date'].apply(mpl_dates.date2num)
@@ -440,27 +445,81 @@ def cal():
         prediction_closing = scaler.inverse_transform(prediction_closing)
 
         valid_close_data = pd.DataFrame(index=range(0, len(prediction_closing)), columns=["Date", "Predictions"])
+        valid_close_data["Predictions"] = prediction_closing
 
+        base = datetime.date.today() - relativedelta(days=2)
+        for x in range(0, remain_value):
+            valid_close_data['Date'][x] = (base + datetime.timedelta(days=x))
+        valid_close_data.index = valid_close_data.Date
+        # creating Subplots
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        # allow grid
+
+        ax.grid(True)
+
+        # Setting labels
+
+        ax.set_ylabel('Price')
+
+        # setting title
+        plt.title(f'{longName} Prices')
+        # Setting labels
+
+        ax.set_xlabel('Date')
+
+        ax.set_ylabel('Price')
+
+        # setting title
+        plt.title(f'{longName} Prices')
+        # Formatting Date
+
+        date_format = mpdates.DateFormatter('%d-%m-%Y')
+
+        ax.xaxis.set_major_formatter(date_format)
+
+        fig.autofmt_xdate()
+
+        # Formatting Date
+
+        # show the plot
+
+        plt.plot(valid_close_data[["Predictions"]])  # prediction-blue
+
+        STOCK = BytesIO()
+
+        plt.savefig(STOCK, format="png")
+
+        STOCK.seek(0)
+
+        line_graph_url = base64.b64encode(STOCK.getvalue()).decode('utf8')
         # for i in range(0,len(prediction_opening)):
         valid_close_data["Predictions"] = prediction_closing
         max_price = (max(prediction_closing))[0]
-        print(sum(prediction_closing) , len(prediction_closing))
         moving_average = sum(prediction_closing) / len(prediction_closing)
 
-        return_percent = (max_price - price) * shares
+        return_percent = (max_price - last_closing) * shares
         return_percent = return_percent * 100
-        return_percent = return_percent / (price * shares)
+        return_percent = return_percent / (last_closing * shares)
 
-        return_percent = str(round(return_percent, 2)) + "%"
+
+        return_percent = round(return_percent, 2)
+        profit = shares * return_percent
+        profit = profit // 100
+        profit = "₹" + str(profit)
+        return_percent = str(return_percent) + "%"
         moving_average = "₹" + str(round(moving_average[0], 2))
         max_price = "₹" + str(round((max(prediction_closing))[0], 2))
 
-        return render_template('form.html', return_percent=return_percent, moving_average=moving_average, max_price=max_price )
+
+        return render_template('form.html',line_graph_url=line_graph_url, return_percent=return_percent,
+                               longName=longName, last_closing=last_closing, profit=profit )
 
 @app.route('/chart', methods=['POST'])
 def show_chart():
     global logo_url
-    six_months = datetime.date.today() + relativedelta(months=6)
+
     if request.method == "POST":
         time_period, current_userinput = request.form.get("time_period", None), request.form.get("stock", None)
         if time_period == "6M":
